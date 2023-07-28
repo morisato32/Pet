@@ -6,13 +6,15 @@ const secret = process.env.JWT_SECRET
 
 
 
-// criando a função 
+ // criando o token
 const createUserToken = async (user,req,res) =>{
 
     const token = jwt.sign({
        nome: user.nome,
        id: user._id
-    },secret)
+    },secret,{
+        expiresIn:"1h",
+    })
 
     // retornando o token
     return res.status(200).json({messsage:`Você esta autenticado!`,Token:token,UserId:user._id})
