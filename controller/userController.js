@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken')
 const getToken = require('../helpers/getToken')
 const statusMensagens = require('../helpers/statusMensagens'); // requerindo a função
 const createUserToken = require('../helpers/userSecretToken');
+const getUserByToken = require('../helpers/getUserPorToken')
 
 
 const userController = {
@@ -103,28 +104,108 @@ const userController = {
         await createUserToken(user, req, res)
     },
 
-    
+    // checkUser estamos pegando o usuario pelo token
     checkUser: async (req, res) => {
         let correntUser;
-       
+
         // passando o secret com variavel de ambiente dotenv
         const secret = process.env.JWT_SECRET
 
-       // chegar o token do usuario
-    try {
-        const token = getToken(req)
-        const verificar = jwt.verify(token,secret)
+        // chegar o token do usuario
+        try {
+            const token = getToken(req)
+            const decoded = jwt.verify(token, secret)
 
-        if(verificar){
-             correntUser = await User.findById(verificar.id)
-             correntUser.senha = undefined
-            
-            res.status(200).json({message:`Token válido`,correntUser})
+
+            if (decoded) {
+                correntUser = await User.findById(decoded.id)
+                correntUser.senha = undefined
+
+                res.status(200).json({ message: `Token válido`, correntUser })
+            }
+
+        } catch (error) {
+            res.status(401).json({ message: `Token inválido!` })
         }
-       
-    } catch (error) {
-        res.status(401).json({message:`Token inválido!`})
-    }
+    },
+
+    getUserId: async (req, res) => {
+        const { id } = req.params
+
+        try {
+            const userId = await User.findById(id).select("-senha")
+
+            if (userId) {
+                return res.status(200).json({ userId })
+
+            }
+        } catch (error) {
+            return res.status(401).json({ message: `Não existe esse usuario` })
+            console.log(error)
+        }
+
+
+
+
+
+    },
+    editUser: async (req, res) => {
+        const { id } = req.params
+
+        const { nome, email, telefone, senha, confirmarSenha } = req.body
+
+        let imagem = req.file
+
+        try {
+            const token = getToken(req)
+
+
+            const user = await getUserByToken(token)
+
+         
+            if (imagem) {
+                user.imagem = req.file.filename
+               
+            }
+
+            // Verificar se os campos obrigatórios estão presentes na requisição
+            if (!nome || !email || !telefone || !senha || !confirmarSenha) {
+                return res.status(400).json({ message: "Todos os campos são obrigatórios" });
+            }
+
+
+            user.email = email
+            user.telefone = telefone
+
+
+
+            if (senha !== confirmarSenha) {
+                return res.status(422).json({ message: "A senha e a confirmação de senha não correspondem!" });
+            }
+
+            else if (senha === confirmarSenha && senha != null) {
+                const salt = await bcrypt.genSalt(12)
+                const senhaHash = await bcrypt.hash(senha, salt)
+
+                // criando senha
+                user.senha = senhaHash
+
+            }
+
+            const userExiste = User.findOne({ email: email })
+
+            if (!userExiste) {
+                return res.status(401).json({ message: `Não existe esse usuario` })
+            }
+           
+            // atualizando o usuario
+            await User.findOneAndUpdate({ _id: user.id }, { $set: user }, { new: true })
+            return res.status(200).json({ message: `Usuario atualizado com sucesso` })
+
+        } catch (error) {
+            return res.status(500).json({ message: `Ouve um erro para atualizar o usuario:${error}` })
+        }
+
     }
 }
 
