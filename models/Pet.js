@@ -1,9 +1,10 @@
-const mongoose = require('mongoose')
-const { Schema } = require('mongoose')
+// Utilizando aqui desta forma para ver como posso adicionar métodos ao meu model
 
-//model
-const Pet = mongoose.model('Pet',
-    new Schema({
+const mongoose = require('mongoose')
+
+            // schema pet
+const petSchema = new mongoose.Schema
+   ({
         name: { type: String, required: true },
         idade: { type: Number, required: true },
         peso: { type: Number, required: true },
@@ -11,12 +12,24 @@ const Pet = mongoose.model('Pet',
         imagem: { type: Array },
         disponivel: { type: Boolean },
         user: Object,
-        adocao: Object
+        adopter: Object
     },
         { timestamps: true }
     )
 
+    // adicionando um método ao pet
+petSchema.methods.speak = async function(res){
+    const petSpeak = this.name
+    ? `Meu nome é ${this.name}`
+    : `Eu não tenho nome`
 
-)
+    return petSpeak
+}
+
+            // passando o schema para o model Pet
+const Pet = mongoose.model('Pet',petSchema)
+
+
+
 
 module.exports = Pet;
