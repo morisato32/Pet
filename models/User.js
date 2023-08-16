@@ -1,3 +1,6 @@
+// estrutura para criarmos um model e schema
+//mongoose.model(modelName, schema)
+
 const mongoose = require('mongoose')
 const { Schema } = require('mongoose')
 

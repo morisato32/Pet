@@ -77,7 +77,7 @@ const petController = {
             // teste de adição de métodos no schema
             // chamando o método
             //const message = await pet.speak()
-            return res.status(201).json({ message: `Pet cadastrado com sucesso`, novoPet})
+            return res.status(201).json({ message: `Pet cadastrado com sucesso`, novoPet })
         } catch (error) {
             return res.status(500).json({ message: `Ouve um erro para salvar o pet:${error}` })
         }
@@ -259,40 +259,63 @@ const petController = {
         }
 
         // checando se o usuario não já agendou a visita
-        if(pet.adopter){
-            if(pet.adopter._id.equals(user._id)){
-                return res.status(422).json({message:`Você já agendou uma visita para esse pet!`})
+        if (pet.adopter) {
+            if (pet.adopter._id.equals(user._id)) {
+                return res.status(422).json({ message: `Você já agendou uma visita para esse pet!` })
             }
         }
 
         // adicionando o usuario ao pet
-         pet.adopter = {
-            _id:user._id,
-            name:user.name,
-            imagem:user.imagem
+        pet.adopter = {
+            _id: user._id,
+            name: user.name,
+            imagem: user.imagem
 
         }
 
         // adicionando as modificações no banco
-        await Pet.findByIdAndUpdate(id,pet)
+        await Pet.findByIdAndUpdate(id, pet)
 
         return res.status(200).json({
-            message:`Voce agendou uma visita com sucesso, entre em contato com  ${pet.user.nome} pelo telefone ${pet.user.telefone}`
-        
+            message: `Voce agendou uma visita com sucesso, entre em contato com  ${pet.user.nome} pelo telefone ${pet.user.telefone}`
+
         })
 
-},
+    },
 
-    concluindoAdocao : async (req,res) =>{
-        const {id} = req.params
+    concluindoAdocao: async (req, res) => {
+        const { id } = req.params
 
-         // checando se o pet existe, se ele é meu
-         const pet = await Pet.findOne({ _id: id })
+        // checando se o pet existe, se ele é meu
+        const pet = await Pet.findOne({ _id: id })
 
-         // se não for manda o status com a mensagem
-         if (!pet) {
-             return res.status(404).json({ message: `Pet não encontrado!` })
-         }
+        // se não for manda o status com a mensagem
+        if (!pet) {
+            return res.status(404).json({ message: `Pet não encontrado!` })
+        }
+
+
+        // pegando o token do usuario
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+
+        // verifica se o pet cadastrado é mesmo do usuario, se não for retorna a mensagem a baixo
+        if (pet.user._id.toString() !== user._id.toString()) {
+            return res.status(422).json({ message: `Houve um problema em processar sua solicitação, tente novamente!` })
+        }
+
+        // pet não esta mais disponivel
+        pet.disponivel = false
+
+        // concluindo a adoção
+
+        await Pet.findByIdAndUpdate(id,pet)
+
+        return res.status(200).json({message:`Adoção concluída com sucesso!`})
+
+
+
+
 
     }
 
